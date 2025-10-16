@@ -1,0 +1,45 @@
+---
+title: "Bayesian notes"
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: ctexart
+editor: visual
+---
+
+# 1 在做什么
+
+在估计参数, $p(\theta|y)=\frac{p(y|\theta)p(\theta)}{p(y)} = \frac{p(y|\theta)p(\theta)}{\int p(y|\theta)p(\theta) \,d\theta}$, 我们想知道参数$\theta$的后验分布是什么, 但是所知道的东西只有prior $p(\theta)$和likelihood$p(y|\theta)$. 而现实中往往面临的情况是分母这个积分根本没有办法积出来.
+
+# 2 怎么做
+
+一共有三种方法估计参数:\
+(1) Analytic: 直接能求出来$p(\theta|y)$的具体表达式\
+(2) Sampling: 用随机样本逼近后验分布. 例如:Gibbs, Metropolis–Hastings, HMC\
+(3) Approximation:用优化或展开近似分布
+
+## 2.1 Analytic
+
+什么时候能直接写出后验？当先验与似然属于“共轭”组合时，后验与先验同族，只是参数更新了一下。这样无需数值方法，可直接写出后验分布。 常见的共轭对有:\
+(1) 正态均值\
+prior: $\mu \sim N(m,s^2)$\
+likelihood: $y_i|\mu\sim N(\mu,\sigma^2)$ ($\sigma^2$已知)\
+posterior: $\mu|y \sim N(\hat{m},\hat{s}^2)$\
+(2) 正态线性回归\
+Conjugate priors: $\beta|\sigma^2 \sim N(B,\sigma^2\sum), \sigma^2 \sim Inv-Gamma(a,b)$\
+Posterior: $\beta|\sigma^2,y$仍为正态,$\sigma^2|y$为逆伽马\
+
+## 2.2 Sampling
+
+首先要回答第一个问题,什么是采样,如果我说我从正态分布$N(0,1)$里取1个随机数是什么意思.先说过程,我先从$Uniform(0,1)$中取出一个数$y$ (可以闭眼从1cm的直尺上随机指出一个数),接着使用$\Phi(z)=y$计算出$z$的值,那么这就是我们从$N(0,1)$中取出的一个随机数,为什么?接下来给出证明:\
+(1) 目的是要证明这样计算出的$Z$应该服从正态分布: $p(Z\leq z) = \Phi(z)$\
+(2) $Z$ 是由 $\Phi(Z)=Y$ 也就是 $\Phi^{-1}(Y)$ 计算出来的,因此$p(Z\leq z) =  p(\Phi^{-1}(Y)\leq z)=p(Y\leq \Phi(z)) =\Phi(z)$ (中间等号根据分布函数的单调性和反函数的性质)\
+
+```{r}
+U = runif(1000,0,1) # 生成1000个服从U(0,1)的数
+hist(U)
+Z = qnorm(U) # 做正态分布的逆变换
+hist(Z)
+```
+
+这个方法叫做直接采样(Direct Sampling),但缺点显而易见,我们必须能知道怎么
