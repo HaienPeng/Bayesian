@@ -81,7 +81,43 @@ legend("topleft", legend = c("Target density f(x)=2x"), col = "red", lwd = 2)
 
 ```
 
+拒绝性采样的缺陷来自几点：\
+（1）效率低，一旦proposal density和taget density差距很大，在判别此处时$U \leq\frac{p(X)}{cq(X)}$就会丢弃非常多的样本 （2）需要知道上界常数 $c$ ,使用该方法必须满足 $cq(x) \geq p(x)$ ， 但在分布非常复杂时无法做到这一点
+
 ### Importance Sampling
 
 重要性采样的原理也并不复杂,核心思想是：用一个容易采样的分布来近似原本难以采样的目标分布，并通过加权修正来保证估计无偏。\
 比如说要计算的期望是$E[f(X)]=\int f(x)p(x)dx$,很多情况下 $p(x)$ 太过于复杂这个积分没有办法计算,我们转而采用Monte Carlo的办法模拟近似估计:$\hat{E[f(X)]}=\frac{1}{n}\sum f(x_i)$,但问题在于 $x_i$ 都需要从分布 $p(x)$ 中直接采样得到,但很难做到这一点,所以才进行了数学变换$E_p[f(X)]=\int f(x)p(x)dx=\int \frac{f(x)p(x)}{q(x)}q(x)dx=E_q[\frac{f(X)p(X)}{q(X)}]$,通过这样的方式,此时如果我们再用Monte Carlo来近似的话,样本只需要从我们设计的proposal density$p(x)$里采样即可,此时再用Monte Carlo计算估计量表示为:$\hat{E[f(X)]}=\frac{1}{n}\sum \frac{f(x_i)p(x_i)}{q(x_i)}$,值得注意的是这个估计量虽然是无偏的但是方差却很大,因此我们实际使用的估计量是:$\hat{E[f(X)]}=\sum f(x_i)\widetilde{w_i}$,其中$\widetilde{w_i}=\frac{w_i}{\sum w_j}, w_i=\frac{p(x_i)}{q(x_i)}$,这个估计量的推导原理也很简单:$E_p[f(X)]=\frac{\int f(x)p(x)dx}{\int p(x)dx}=\frac{\int \frac{f(x)p(x)}{q(x)}q(x)dx}{\int \frac{p(x)}{q(x)}q(x)}=\frac{E_q[\frac{f(X)p(X)}{q(X)}]}{E_q[\frac{p(X)}{q(X)}]}$, 分母上的 $\int p(x)dx=1$ 因为这是pdf的积分,此外这里也能看得出来一个明显的区别就是如果我们只知道 $p(x)\propto g(x)$ 的话,那在前一个估计量处进行计算 $\hat{E[f(X)]}=\frac{1}{n}\sum \frac{f(x_i)p(x_i)}{q(x_i)}$ 就是不正确的,因为使用的 $p(x)$ (其实是 $g(x)$ )是一个未归一化的函数,所谓的未归一化指的是$\int p(x)dx=1$ 但是如果 $p(x)\propto g(x)$ 那么 $1=\int p(x)dx=\int \theta g(x)dx, \int g(x)dx=\frac{1}{\theta}$
+
+```{r importance, fig.keep='all', echo=TRUE}
+
+set.seed(1234)
+
+# --- 目标分布：混合高斯 ---
+x <- c(rnorm(5000,-1,1), rnorm(5000,6,1))
+
+# --- 提议分布：简单高斯 ---
+m <- 100000
+g <- rnorm(m, 0, 2)
+g.sorted <- sort(g)
+
+# --- 计算权重 w = p/q ---
+weights <- (0.7*dnorm(g.sorted, -1, 1) + 0.3*dnorm(g.sorted, 6, 1)) / 
+            dnorm(g.sorted, 0, 2)
+
+# --- 归一化 + 重采样 ---
+w_norm <- weights / sum(weights)
+resample_idx <- sample(1:length(g.sorted), size=1000, replace=TRUE, prob=w_norm)
+x_resampled <- g.sorted[resample_idx]
+
+# --- 可视化 ---
+plot(density(x), col="black", lwd=2, main="Importance Sampling + Resampling", 
+     xlab="x", xlim=c(-5,10),ylim=c(0, 0.6))
+lines(density(g.sorted), col="gray", lwd=2, lty=2)
+lines(density(x_resampled), col="blue", lwd=2)
+legend("topright", legend=c("Target p(x)", "Proposal q(x)", "Resampled Samples"),
+       col=c("black", "gray", "blue"), lty=c(1,2,1), lwd=2)
+
+
+
+```
