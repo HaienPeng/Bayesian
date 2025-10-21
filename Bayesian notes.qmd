@@ -82,19 +82,23 @@ legend("topleft", legend = c("Target density f(x)=2x"), col = "red", lwd = 2)
 ```
 
 拒绝性采样的缺陷来自几点：\
-（1）效率低，一旦proposal density和taget density差距很大，在判别此处时$U \leq\frac{p(X)}{cq(X)}$就会丢弃非常多的样本 （2）需要知道上界常数 $c$ ,使用该方法必须满足 $cq(x) \geq p(x)$ ， 但在分布非常复杂时无法做到这一点
+（1）效率低,一旦proposal density和taget density差距很大,在判别此处时$U \leq\frac{p(X)}{cq(X)}$就会丢弃非常多的样本\
+（2）需要知道上界常数 $c$ ,使用该方法必须满足 $cq(x) \geq p(x)$ , 但在分布非常复杂时无法做到这一点
 
 ### Importance Sampling
 
 重要性采样的原理也并不复杂,核心思想是：用一个容易采样的分布来近似原本难以采样的目标分布，并通过加权修正来保证估计无偏。\
-比如说要计算的期望是$E[f(X)]=\int f(x)p(x)dx$,很多情况下 $p(x)$ 太过于复杂这个积分没有办法计算,我们转而采用Monte Carlo的办法模拟近似估计:$\hat{E[f(X)]}=\frac{1}{n}\sum f(x_i)$,但问题在于 $x_i$ 都需要从分布 $p(x)$ 中直接采样得到,但很难做到这一点,所以才进行了数学变换$E_p[f(X)]=\int f(x)p(x)dx=\int \frac{f(x)p(x)}{q(x)}q(x)dx=E_q[\frac{f(X)p(X)}{q(X)}]$,通过这样的方式,此时如果我们再用Monte Carlo来近似的话,样本只需要从我们设计的proposal density$p(x)$里采样即可,此时再用Monte Carlo计算估计量表示为:$\hat{E[f(X)]}=\frac{1}{n}\sum \frac{f(x_i)p(x_i)}{q(x_i)}$,值得注意的是这个估计量虽然是无偏的但是方差却很大,因此我们实际使用的估计量是:$\hat{E[f(X)]}=\sum f(x_i)\widetilde{w_i}$,其中$\widetilde{w_i}=\frac{w_i}{\sum w_j}, w_i=\frac{p(x_i)}{q(x_i)}$,这个估计量的推导原理也很简单:$E_p[f(X)]=\frac{\int f(x)p(x)dx}{\int p(x)dx}=\frac{\int \frac{f(x)p(x)}{q(x)}q(x)dx}{\int \frac{p(x)}{q(x)}q(x)}=\frac{E_q[\frac{f(X)p(X)}{q(X)}]}{E_q[\frac{p(X)}{q(X)}]}$, 分母上的 $\int p(x)dx=1$ 因为这是pdf的积分,此外这里也能看得出来一个明显的区别就是如果我们只知道 $p(x)\propto g(x)$ 的话,那在前一个估计量处进行计算 $\hat{E[f(X)]}=\frac{1}{n}\sum \frac{f(x_i)p(x_i)}{q(x_i)}$ 就是不正确的,因为使用的 $p(x)$ (其实是 $g(x)$ )是一个未归一化的函数,所谓的未归一化指的是$\int p(x)dx=1$ 但是如果 $p(x)\propto g(x)$ 那么 $1=\int p(x)dx=\int \theta g(x)dx, \int g(x)dx=\frac{1}{\theta}$
 
-```{r importance, fig.keep='all', echo=TRUE}
+比如说要计算的期望是$E[f(X)]=\int f(x)p(x)dx$,很多情况下 $p(x)$ 太过于复杂这个积分没有办法计算,我们转而采用Monte Carlo的办法模拟近似估计:$\hat{E[f(X)]}=\frac{1}{n}\sum f(x_i)$,但问题在于 $x_i$ 都需要从分布 $p(x)$ 中直接采样得到,但很难做到这一点,所以才进行了数学变换$E_p[f(X)]=\int f(x)p(x)dx=\int \frac{f(x)p(x)}{q(x)}q(x)dx=E_q[\frac{f(X)p(X)}{q(X)}]$,通过这样的方式,此时如果我们再用Monte Carlo来近似的话,样本只需要从我们设计的proposal density$p(x)$里采样即可,此时再用Monte Carlo计算估计量表示为:$\hat{E[f(X)]}=\frac{1}{n}\sum \frac{f(x_i)p(x_i)}{q(x_i)}$,值得注意的是这个估计量虽然是无偏的但是方差却很大,因此我们实际使用的估计量是:$\hat{E[f(X)]}=\sum f(x_i)\widetilde{w_i}$,其中$\widetilde{w_i}=\frac{w_i}{\sum w_j}, w_i=\frac{p(x_i)}{q(x_i)}$,这个估计量的推导原理也很简单:$E_p[f(X)]=\frac{\int f(x)p(x)dx}{\int p(x)dx}=\frac{\int \frac{f(x)p(x)}{q(x)}q(x)dx}{\int \frac{p(x)}{q(x)}q(x)}=\frac{E_q[\frac{f(X)p(X)}{q(X)}]}{E_q[\frac{p(X)}{q(X)}]}$, 分母上的 $\int p(x)dx=1$ 因为这是pdf的积分,此外这里也能看得出来一个明显的区别就是如果我们只知道 $p(x)\propto g(x)$ 的话,那在前一个估计量处进行计算 $\hat{E[f(X)]}=\frac{1}{n}\sum \frac{f(x_i)p(x_i)}{q(x_i)}$ 就是不正确的,因为使用的 $p(x)$ (其实是 $g(x)$ )是一个未归一化的函数,所谓的未归一化指的是$\int p(x)dx=1$ 但是如果 $p(x)\propto g(x)$ 那么 $1=\int p(x)dx=\int \theta g(x)dx, \int g(x)dx=\frac{1}{\theta}$\
+
+以下展示了个具体的例子,假如说我的taget density是一个Gaussian Mixture Distribution,这里的分布函数应该满足 $p(x)=0.7N(-1,1)+0.3N(6,1)$ ,值得注意的是这个分布和$Y=0.7X_1+0.3X_2, where X_1 \sim N(-1,1), X_2 \sim N(6,1)$ 完全不同,在后一种情形下 $Y$ 仍旧是一个正态分布, 而在前一种情形下的pdf则是由两个正态分布的pdf直接相加形成的.代码中使用了 $q(x) \sim N(0,2)$ 作为proposal density,并且当从提议分布中抽样后,根据weight再次重新从已经抽出的样本中抽样画出了图.
+
+```{r importance, fig.show='hold', echo=TRUE}
 
 set.seed(1234)
 
 # --- 目标分布：混合高斯 ---
-x <- c(rnorm(5000,-1,1), rnorm(5000,6,1))
+x <- c(rnorm(7000,-1,1), rnorm(3000,6,1))
 
 # --- 提议分布：简单高斯 ---
 m <- 100000
@@ -118,6 +122,87 @@ lines(density(x_resampled), col="blue", lwd=2)
 legend("topright", legend=c("Target p(x)", "Proposal q(x)", "Resampled Samples"),
        col=c("black", "gray", "blue"), lty=c(1,2,1), lwd=2)
 
+
+
+```
+
+### Markov Chain Monte Carlo (MCMC)
+
+MCMC的目标也是为了生成taget density的样本,Markov Chain的意思是一个随机过程，其中下一个状态只依赖于当前状态，而与过去的历史无关,这就是所谓的 “无记忆性（Markov property）”,在贝叶斯推断中，我们想构造这样一个“链”：它一步一步“走”，每个新状态（参数值）只依赖于上一个状态，当走得够久时访问每个状态的频率刚好符合后验分布$p(\theta|D)$. 所有接下来的所有算法都是围绕怎么构造这样一条链出发的\
+
+#### Metropolis-Hastings
+
+先讲这个算法生成整条链的步骤:
+
+(1) 从初始点 $\theta^{(0)}$ 开始
+(2) 随机提议一个新的点 $\theta'$ ,这个点由提议分布计算得来: $\theta' \sim q(\theta'|\theta^{(0)})$
+(3) 接着根据Acceptance ratio决定是否接受这个点: $$
+    \alpha(\theta, \theta') = \min\left(1, \frac{p(\theta')\, q(\theta^{(t)} \mid \theta')}{p(\theta^{(t)})\, q(\theta' \mid \theta^{(t)})} \right)
+    $$ 如果 $\alpha=1$ 一定接受,如果 $\alpha<1$,则再成一个随机数 $u \sim U(0,1)$, 如果 $u<\alpha$, 就接受新的点,否则拒绝\
+    以下给出一个代码示例看看究竟是怎么做的,假设我们的target density就是 $p(x) \sim N(0,1)$, proposal density是 $q(\theta'|\theta^{(t)})=N(\theta^{(t)},1)$, 随机生成规则可以写成 $\theta'=\theta^{(t)}+\epsilon , \epsilon \sim N(0,1)$,此时可以看到由于提议分布完全对称所以Acceptance ratio可以简化成$\alpha(\theta, \theta') = \min\left(1, \frac{p(\theta') }{p(\theta^{(t)})} \right)$, 因为$q(\theta' \mid \theta^{(t)})= \frac{1}{\sqrt{2\pi}}e^{-\frac{(\theta'-\theta^{(t)})^2}{2}}$, 就相当于我设定了 $\theta^{(t)}$ 具体是多少,那我现在这个分布函数里就没有不知道的参数了,我可以从这个分布函数里抽样出一个值作为 $\theta'$.
+
+```{r}
+# Metropolis–Hastings for target N(0,1) with symmetric Gaussian proposal in R
+
+mh_normal <- function(n_samples = 10000,
+                      proposal_sd = 1.0,  # 提议步长的标准差
+                      theta0 = 0.0,
+                      burn_in = 1000,
+                      thin = 1,
+                      seed = 123) {
+  set.seed(seed)
+  n_total <- n_samples + burn_in
+  samples <- numeric(n_total)
+  theta <- theta0
+  acc <- 0L
+  
+  # 目标对数密度：标准正态 (忽略常数也可以，这里用dnorm的log形式最稳)
+  logp <- function(x) dnorm(x, mean = 0, sd = 1, log = TRUE)
+  
+  for (t in seq_len(n_total)) {
+    # 对称高斯提议：theta' = theta + eps, eps ~ N(0, proposal_sd^2)
+    # 也可以写成theta_prop <- rnorm(1, mean = theta, sd = proposal_sd), 代表直接从这个条件分布中抽样
+    theta_prop <- theta + rnorm(1, mean = 0, sd = proposal_sd)
+
+    
+    # 接受率（对称提议：q 互相抵消），用log-接受率更数值稳定
+    # log接受率数值更稳定的意思是算出来的数太大或者太小计算机误以为是0,先取对数之后再进行指数运算方便
+    log_alpha <- logp(theta_prop) - logp(theta)
+    alpha <- exp(min(0, log_alpha))  # 等价于 min(1, exp(log_alpha))
+    
+    if (runif(1) < alpha) {
+      theta <- theta_prop
+      acc <- acc + 1L
+    }
+    samples[t] <- theta
+  }
+  
+  chain <- samples[(burn_in + 1):n_total]
+  if (thin > 1) chain <- chain[seq(1, length(chain), by = thin)]
+  acc_rate <- acc / n_total
+  
+  list(chain = chain, acceptance = acc_rate)
+}
+
+# ---- 运行示例 ----
+res <- mh_normal(
+  n_samples = 10000,
+  proposal_sd = 1.0,  # 调大步长一般降接受率；调小步长提升接受率但移动慢
+  theta0 = 0.0,
+  burn_in = 1000,
+  thin = 1,
+  seed = 2025
+)
+
+cat(sprintf("接受率: %.3f\n", res$acceptance))
+cat(sprintf("样本均值: %.3f, 样本方差: %.3f\n",
+            mean(res$chain), var(res$chain)))
+
+# 直方图对比真密度
+hist(res$chain, breaks = 60, freq = FALSE, col = "grey80",
+     main = "MH on N(0,1) with symmetric Gaussian proposal",
+     xlab = "theta")
+curve(dnorm(x, 0, 1), add = TRUE, lwd = 2)
 
 
 ```
